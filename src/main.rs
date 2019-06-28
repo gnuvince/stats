@@ -81,7 +81,7 @@ fn main() {
         let line = line.unwrap();
         match str::parse::<f64>(&line) {
             Ok(x) => v.push(x),
-            Err(e) => eprintln!("stats: {}", e),
+            Err(e) => eprintln!("stats: {:?} {}", line, e),
         }
     }
 
