@@ -5,6 +5,8 @@ use std::io::{self, BufReader, BufRead};
 use std::fs::File;
 use std::process::exit;
 
+const VERSION: &str = "0.1.0";
+
 #[derive(Default, Debug)]
 struct Stats {
     len: usize,
@@ -89,17 +91,13 @@ fn bufreader_from_file(filename: &str) -> io::Result<Box<dyn BufRead>> {
     }
 }
 
-fn print_usage(program: &str, opts: Options) {
-    let brief = format!("Usage: {} [-ch] [FILES]", program);
-    print!("{}", opts.usage(&brief));
-}
-
 fn main() {
     let args: Vec<String> = env::args().collect();
     let program = args[0].clone();
     let mut opts = Options::new();
     opts.optflag("c", "compact", "display each file on one line");
     opts.optflag("h", "help", "display help");
+    opts.optflag("v", "version", "display version");
 
     let mut matches = match opts.parse(&args[1..]) {
         Ok(m) => { m }
@@ -110,7 +108,13 @@ fn main() {
     };
 
     if matches.opt_present("h") {
-        print_usage(&program, opts);
+        let brief = format!("Usage: {} [-chv] [FILES]", program);
+        print!("{}", opts.usage(&brief));
+        exit(0);
+    }
+
+    if matches.opt_present("v") {
+        println!("{}", VERSION);
         exit(0);
     }
 
