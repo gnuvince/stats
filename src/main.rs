@@ -1,6 +1,9 @@
+use getopts::Options;
 use std::cmp::Ordering;
-use std::fmt;
-use std::io::{self, BufRead};
+use std::env;
+use std::io::{self, BufReader, BufRead};
+use std::fs::File;
+use std::process::exit;
 
 #[derive(Default, Debug)]
 struct Stats {
@@ -17,21 +20,26 @@ struct Stats {
     p99: f64,
 }
 
-impl fmt::Display for Stats {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        writeln!(f, "  len  {}", self.len)?;
-        writeln!(f, "  sum  {:.05}", self.sum)?;
-        writeln!(f, "  min  {:.05}", self.min)?;
-        writeln!(f, "  max  {:.05}", self.max)?;
-        writeln!(f, "  mean {:.05}", self.mean)?;
-        writeln!(f, "  std  {:.05}", self.std)?;
-        writeln!(f, "  p50  {:.05}", self.p50)?;
-        writeln!(f, "  p75  {:.05}", self.p75)?;
-        writeln!(f, "  p90  {:.05}", self.p90)?;
-        writeln!(f, "  p95  {:.05}", self.p95)?;
-        writeln!(f, "  p99  {:.05}", self.p99)?;
-        return Ok(());
-    }
+fn fmt_full(filename: &str, stats: &Stats) {
+    println!("{}", filename);
+    println!("  len  {}", stats.len);
+    println!("  sum  {:.05}", stats.sum);
+    println!("  min  {:.05}", stats.min);
+    println!("  max  {:.05}", stats.max);
+    println!("  mean {:.05}", stats.mean);
+    println!("  std  {:.05}", stats.std);
+    println!("  p50  {:.05}", stats.p50);
+    println!("  p75  {:.05}", stats.p75);
+    println!("  p90  {:.05}", stats.p90);
+    println!("  p95  {:.05}", stats.p95);
+    println!("  p99  {:.05}", stats.p99);
+}
+
+fn fmt_compact(filename: &str, stats: &Stats) {
+    println!(
+        "{} {} {:.05} {:.05} {:.05} {:.05} {:.05} {:.05} {:.05} {:.05} {:.05} {:.05}",
+        filename, stats.len, stats.sum, stats.min, stats.max, stats.mean, stats.std,
+        stats.p50, stats.p75, stats.p90, stats.p95, stats.p99);
 }
 
 fn percentile(v: &[f64], num: usize, denom: usize) -> f64 {
@@ -71,20 +79,69 @@ fn stats(mut v: Vec<f64>) -> Stats {
     return s;
 }
 
-fn main() {
-    let stdin = io::stdin();
-    let stdin = stdin.lock();
+fn print_usage(program: &str, opts: Options) {
+    let brief = format!("Usage: {} [-ch] [FILES]", program);
+    print!("{}", opts.usage(&brief));
+}
 
-    let mut v: Vec<f64> = Vec::with_capacity(1024);
-    println!("<stdin>");
-    for line in stdin.lines() {
-        let line = line.unwrap();
-        match str::parse::<f64>(&line) {
-            Ok(x) => v.push(x),
-            Err(e) => eprintln!("stats: {:?} {}", line, e),
+fn main() {
+    let args: Vec<String> = env::args().collect();
+    let program = args[0].clone();
+    let mut opts = Options::new();
+    opts.optflag("c", "compact", "display each file on one line");
+    opts.optflag("h", "help", "display help");
+
+    let mut matches = match opts.parse(&args[1..]) {
+        Ok(m) => { m }
+        Err(e) => {
+            eprintln!("{}: {}", program, e);
+            exit(1);
         }
+    };
+
+    if matches.opt_present("h") {
+        print_usage(&program, opts);
+        exit(0);
     }
 
-    let s = stats(v);
-    println!("{}", s);
+    let mut out_fn: fn(&str, &Stats) = fmt_full;
+    if matches.opt_present("c") {
+        out_fn = fmt_compact;
+    }
+
+    let mut ret = 0;
+    if matches.free.is_empty() {
+        matches.free.push("-".to_owned());
+    }
+
+    for filename in matches.free {
+        let mut v: Vec<f64> = Vec::with_capacity(1024);
+
+        let reader: Box<dyn BufRead> =
+            if filename == "-" {
+                let stdin = io::stdin();
+                Box::new(BufReader::new(stdin))
+            } else {
+                match File::open(&filename) {
+                    Ok(f) => Box::new(BufReader::new(f)),
+                    Err(e) => {
+                        eprintln!("{}: {}: {}", program, filename, e);
+                        ret = 1;
+                        continue;
+                    }
+                }
+            };
+
+        for line in reader.lines() {
+            let line = line.unwrap();
+            match str::parse::<f64>(&line) {
+                Ok(x) => v.push(x),
+                Err(e) => eprintln!("stats: {:?} {}", line, e),
+            }
+        }
+
+        let s = stats(v);
+        out_fn(&filename, &s);
+    }
+    exit(ret);
 }
