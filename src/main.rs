@@ -19,17 +19,17 @@ struct Stats {
 
 impl fmt::Display for Stats {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        writeln!(f, "len  {}", self.len)?;
-        writeln!(f, "sum  {:.05}", self.sum)?;
-        writeln!(f, "min  {:.05}", self.min)?;
-        writeln!(f, "max  {:.05}", self.max)?;
-        writeln!(f, "mean {:.05}", self.mean)?;
-        writeln!(f, "std  {:.05}", self.std)?;
-        writeln!(f, "p50  {:.05}", self.p50)?;
-        writeln!(f, "p75  {:.05}", self.p75)?;
-        writeln!(f, "p90  {:.05}", self.p90)?;
-        writeln!(f, "p95  {:.05}", self.p95)?;
-        writeln!(f, "p99  {:.05}", self.p99)?;
+        writeln!(f, "  len  {}", self.len)?;
+        writeln!(f, "  sum  {:.05}", self.sum)?;
+        writeln!(f, "  min  {:.05}", self.min)?;
+        writeln!(f, "  max  {:.05}", self.max)?;
+        writeln!(f, "  mean {:.05}", self.mean)?;
+        writeln!(f, "  std  {:.05}", self.std)?;
+        writeln!(f, "  p50  {:.05}", self.p50)?;
+        writeln!(f, "  p75  {:.05}", self.p75)?;
+        writeln!(f, "  p90  {:.05}", self.p90)?;
+        writeln!(f, "  p95  {:.05}", self.p95)?;
+        writeln!(f, "  p99  {:.05}", self.p99)?;
         return Ok(());
     }
 }
@@ -76,7 +76,7 @@ fn main() {
     let stdin = stdin.lock();
 
     let mut v: Vec<f64> = Vec::with_capacity(1024);
-
+    println!("<stdin>");
     for line in stdin.lines() {
         let line = line.unwrap();
         match str::parse::<f64>(&line) {
