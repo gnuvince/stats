@@ -79,6 +79,16 @@ fn stats(mut v: Vec<f64>) -> Stats {
     return s;
 }
 
+fn bufreader_from_file(filename: &str) -> io::Result<Box<dyn BufRead>> {
+    if filename == "-" {
+        let stdin = io::stdin();
+        Ok(Box::new(BufReader::new(stdin)))
+    } else {
+        let f = File::open(&filename)?;
+        Ok(Box::new(BufReader::new(f)))
+    }
+}
+
 fn print_usage(program: &str, opts: Options) {
     let brief = format!("Usage: {} [-ch] [FILES]", program);
     print!("{}", opts.usage(&brief));
@@ -117,26 +127,20 @@ fn main() {
     for filename in matches.free {
         let mut v: Vec<f64> = Vec::with_capacity(1024);
 
-        let reader: Box<dyn BufRead> =
-            if filename == "-" {
-                let stdin = io::stdin();
-                Box::new(BufReader::new(stdin))
-            } else {
-                match File::open(&filename) {
-                    Ok(f) => Box::new(BufReader::new(f)),
-                    Err(e) => {
-                        eprintln!("{}: {}: {}", program, filename, e);
-                        ret = 1;
-                        continue;
-                    }
-                }
-            };
+        let reader: Box<dyn BufRead> = match bufreader_from_file(&filename) {
+            Ok(r) => r,
+            Err(e) => {
+                ret = 1;
+                eprintln!("{}: {}: {}", program, filename, e);
+                continue;
+            }
+        };
 
         for line in reader.lines() {
             let line = line.unwrap();
             match str::parse::<f64>(&line) {
                 Ok(x) => v.push(x),
-                Err(e) => eprintln!("stats: {:?} {}", line, e),
+                Err(e) => eprintln!("{}: {:?} {}", program, line, e),
             }
         }
 
