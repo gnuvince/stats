@@ -5,6 +5,7 @@ use std::io::{self, BufReader, BufRead};
 use std::fs::File;
 use std::process::exit;
 
+const PROGNAME: &str = "stats";
 const VERSION: &str = "0.1.0";
 
 #[derive(Default, Debug)]
@@ -92,23 +93,21 @@ fn bufreader_from_file(filename: &str) -> io::Result<Box<dyn BufRead>> {
 }
 
 fn main() {
-    let args: Vec<String> = env::args().collect();
-    let program = args[0].clone();
     let mut opts = Options::new();
     opts.optflag("c", "compact", "display each file on one line");
     opts.optflag("h", "help", "display help");
     opts.optflag("v", "version", "display version");
 
-    let mut matches = match opts.parse(&args[1..]) {
+    let mut matches = match opts.parse(env::args().skip(1)) {
         Ok(m) => { m }
         Err(e) => {
-            eprintln!("{}: {}", program, e);
+            eprintln!("{}: {}", PROGNAME, e);
             exit(1);
         }
     };
 
     if matches.opt_present("h") {
-        let brief = format!("Usage: {} [-chv] [FILES]", program);
+        let brief = format!("Usage: {} [-chv] [FILES]", PROGNAME);
         print!("{}", opts.usage(&brief));
         exit(0);
     }
@@ -135,7 +134,7 @@ fn main() {
             Ok(r) => r,
             Err(e) => {
                 ret = 1;
-                eprintln!("{}: {}: {}", program, filename, e);
+                eprintln!("{}: {}: {}", PROGNAME, filename, e);
                 continue;
             }
         };
@@ -144,7 +143,7 @@ fn main() {
             let line = line.unwrap();
             match str::parse::<f64>(&line) {
                 Ok(x) => v.push(x),
-                Err(e) => eprintln!("{}: {:?} {}", program, line, e),
+                Err(e) => eprintln!("{}: {:?} {}", PROGNAME, line, e),
             }
         }
 
