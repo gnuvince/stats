@@ -65,14 +65,11 @@ fn stats(mut v: Vec<f64>) -> Stats {
     s.p90 = percentile(&v, 9, 10);
     s.p95 = percentile(&v, 19, 20);
     s.p99 = percentile(&v, 99, 100);
-
-    s.min = std::f64::INFINITY;
-    s.max = std::f64::NEG_INFINITY;
     for x in &v {
         s.sum += *x;
-        s.min = f64::min(s.min, *x);
-        s.max = f64::max(s.max, *x);
     }
+    s.min = *v.first().unwrap_or(&std::f64::NAN);
+    s.max = *v.last().unwrap_or(&std::f64::NAN);
     s.mean = s.sum / (s.len as f64);
     for x in &v {
         let d = x - s.mean;
