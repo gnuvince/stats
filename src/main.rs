@@ -137,8 +137,14 @@ fn main() {
         for line in reader.lines() {
             let line = line.unwrap();
             match str::parse::<f64>(&line) {
-                Ok(x) => v.push(x),
                 Err(e) => eprintln!("{}: {:?} {}", PROGNAME, line, e),
+                Ok(x) => {
+                    if x.is_finite() {
+                        v.push(x);
+                    } else {
+                        eprintln!("{}: skipping {}", PROGNAME, line);
+                    }
+                }
             }
         }
 
