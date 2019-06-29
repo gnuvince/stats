@@ -67,13 +67,18 @@ fn stats(mut v: Vec<f64>) -> Stats {
     s.p99 = percentile(&v, 99, 100);
     s.min = *v.first().unwrap_or(&std::f64::NAN);
     s.max = *v.last().unwrap_or(&std::f64::NAN);
-    s.sum = v.iter().sum();
-    s.mean = s.sum / (s.len as f64);
+
+    let n = s.len as f64;
+    let mut sum = 0.0;
+    let mut sum_sq = 0.0;
     for x in &v {
-        let d = x - s.mean;
-        s.std += d*d;
+        sum += x;
+        sum_sq += x*x;
     }
-    s.std = f64::sqrt(s.std / (s.len as f64));
+    s.sum = sum;
+    s.mean = s.sum / n;
+    // https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Na%C3%AFve_algorithm
+    s.std = f64::sqrt((sum_sq - (sum * sum) / n) / n);
     return s;
 }
 
