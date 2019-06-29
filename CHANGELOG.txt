@@ -1,0 +1,10 @@
+0.1.1
+=====
+
+- Compute standard deviation with a single loop
+
+
+0.1.0
+=====
+
+- Initial release
