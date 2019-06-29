@@ -122,10 +122,10 @@ fn main() {
         matches.free.push("-".to_owned());
     }
 
-    for filename in matches.free {
+    for filename in &matches.free {
         let mut v: Vec<f64> = Vec::with_capacity(1024);
 
-        let reader: Box<dyn BufRead> = match bufreader_from_file(&filename) {
+        let reader: Box<dyn BufRead> = match bufreader_from_file(filename) {
             Ok(r) => r,
             Err(e) => {
                 ret = 1;
@@ -149,7 +149,7 @@ fn main() {
         }
 
         let s = stats(v);
-        out_fn(&filename, &s);
+        out_fn(filename, &s);
     }
     exit(ret);
 }
