@@ -110,7 +110,7 @@ fn main() {
     };
 
     if matches.opt_present("h") {
-        let brief = format!("Usage: {} [-chv] [FILES]", PROGNAME);
+        let brief = format!("Usage: {} [-chsv] [FILES]", PROGNAME);
         print!("{}", opts.usage(&brief));
         exit(0);
     }
