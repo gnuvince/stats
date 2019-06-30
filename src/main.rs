@@ -23,6 +23,7 @@ struct Stats {
     p99: f64,
 }
 
+/// Displays one stat (and its title) per line; good for humans.
 fn fmt_full(filename: &str, stats: &Stats) {
     println!("{}", filename);
     println!("  len  {}", stats.len);
@@ -38,6 +39,7 @@ fn fmt_full(filename: &str, stats: &Stats) {
     println!("  p99  {:.05}", stats.p99);
 }
 
+/// Displays all stats on a single line (no titles); good for pipelines.
 fn fmt_compact(filename: &str, stats: &Stats) {
     println!(
         "{} {} {:.05} {:.05} {:.05} {:.05} {:.05} {:.05} {:.05} {:.05} {:.05} {:.05}",
@@ -96,6 +98,7 @@ fn main() {
     let mut opts = Options::new();
     opts.optflag("c", "compact", "display each file on one line");
     opts.optflag("h", "help", "display help");
+    opts.optflag("s", "silent", "suppress error messages");
     opts.optflag("v", "version", "display version");
 
     let mut matches = match opts.parse(env::args().skip(1)) {
@@ -117,6 +120,8 @@ fn main() {
         exit(0);
     }
 
+    let silent = matches.opt_present("s");
+
     let mut out_fn: fn(&str, &Stats) = fmt_full;
     if matches.opt_present("c") {
         out_fn = fmt_compact;
@@ -134,7 +139,9 @@ fn main() {
             Ok(r) => r,
             Err(e) => {
                 ret = 1;
-                eprintln!("{}: {}: {}", PROGNAME, filename, e);
+                if !silent {
+                    eprintln!("{}: {}: {}", PROGNAME, filename, e);
+                }
                 continue;
             }
         };
@@ -142,12 +149,18 @@ fn main() {
         for line in reader.lines() {
             let line = line.unwrap();
             match str::parse::<f64>(&line) {
-                Err(e) => eprintln!("{}: {:?} {}", PROGNAME, line, e),
+                Err(e) => {
+                    if !silent {
+                        eprintln!("{}: {:?} {}", PROGNAME, line, e);
+                    }
+                }
                 Ok(x) => {
                     if x.is_finite() {
                         v.push(x);
                     } else {
-                        eprintln!("{}: skipping {}", PROGNAME, line);
+                        if !silent {
+                            eprintln!("{}: skipping {}", PROGNAME, line);
+                        }
                     }
                 }
             }
