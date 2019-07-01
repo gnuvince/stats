@@ -24,11 +24,12 @@ Usage
 -----
 
 ```
-Usage: stats [-chv] [FILES]
+Usage: stats [-chsv] [FILES]
 
 Options:
     -c, --compact       display each file on one line
     -h, --help          display help
+    -s, --silent        suppress error messages
     -v, --version       display version
 ```
 
