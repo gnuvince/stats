@@ -14,7 +14,7 @@ struct Stats {
     sum: f64,
     min: f64,
     max: f64,
-    mean: f64,
+    avg: f64,
     std: f64,
     p50: f64,
     p75: f64,
@@ -30,7 +30,7 @@ fn fmt_full(filename: &str, stats: &Stats) {
     println!("  sum  {:.05}", stats.sum);
     println!("  min  {:.05}", stats.min);
     println!("  max  {:.05}", stats.max);
-    println!("  mean {:.05}", stats.mean);
+    println!("  avg  {:.05}", stats.avg);
     println!("  std  {:.05}", stats.std);
     println!("  p50  {:.05}", stats.p50);
     println!("  p75  {:.05}", stats.p75);
@@ -43,7 +43,7 @@ fn fmt_full(filename: &str, stats: &Stats) {
 fn fmt_compact(filename: &str, stats: &Stats) {
     println!(
         "{} {} {:.05} {:.05} {:.05} {:.05} {:.05} {:.05} {:.05} {:.05} {:.05} {:.05}",
-        filename, stats.len, stats.sum, stats.min, stats.max, stats.mean, stats.std,
+        filename, stats.len, stats.sum, stats.min, stats.max, stats.avg, stats.std,
         stats.p50, stats.p75, stats.p90, stats.p95, stats.p99);
 }
 
@@ -78,7 +78,7 @@ fn stats(mut v: Vec<f64>) -> Stats {
         sum_sq += x*x;
     }
     s.sum = sum;
-    s.mean = s.sum / n;
+    s.avg = s.sum / n;
     // https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Na%C3%AFve_algorithm
     s.std = f64::sqrt((sum_sq - (sum * sum) / n) / n);
     return s;
