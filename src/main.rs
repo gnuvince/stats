@@ -6,7 +6,7 @@ use std::fs::File;
 use std::process::exit;
 
 const PROGNAME: &str = "stats";
-const VERSION: &str = "0.1.3";
+const VERSION: &str = "0.1.4";
 
 #[derive(Default, Debug)]
 struct Stats {
