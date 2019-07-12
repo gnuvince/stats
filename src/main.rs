@@ -122,10 +122,8 @@ fn main() {
 
     let silent = matches.opt_present("s");
 
-    let mut out_fn: fn(&str, &Stats) = fmt_full;
-    if matches.opt_present("c") {
-        out_fn = fmt_compact;
-    }
+    let out_fn: fn(&str, &Stats) =
+        if matches.opt_present("c") { fmt_compact } else { fmt_full };
 
     let mut ret = 0;
     if matches.free.is_empty() {
@@ -157,10 +155,8 @@ fn main() {
                 Ok(x) => {
                     if x.is_finite() {
                         v.push(x);
-                    } else {
-                        if !silent {
-                            eprintln!("{}: skipping {}", PROGNAME, line);
-                        }
+                    } else if !silent {
+                        eprintln!("{}: skipping {}", PROGNAME, line);
                     }
                 }
             }
