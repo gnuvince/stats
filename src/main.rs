@@ -16,6 +16,7 @@ struct Stats {
     max: f64,
     avg: f64,
     std: f64,
+    mode: f64,
     p50: f64,
     p75: f64,
     p90: f64,
@@ -32,6 +33,7 @@ fn fmt_full(filename: &str, stats: &Stats) {
     println!("  max  {:.05}", stats.max);
     println!("  avg  {:.05}", stats.avg);
     println!("  std  {:.05}", stats.std);
+    println!("  mode {:.05}", stats.mode);
     println!("  p50  {:.05}", stats.p50);
     println!("  p75  {:.05}", stats.p75);
     println!("  p90  {:.05}", stats.p90);
@@ -42,8 +44,8 @@ fn fmt_full(filename: &str, stats: &Stats) {
 /// Displays all stats on a single line (no titles); good for pipelines.
 fn fmt_compact(filename: &str, stats: &Stats) {
     println!(
-        "{} {} {:.05} {:.05} {:.05} {:.05} {:.05} {:.05} {:.05} {:.05} {:.05} {:.05}",
-        filename, stats.len, stats.sum, stats.min, stats.max, stats.avg, stats.std,
+        "{} {} {:.05} {:.05} {:.05} {:.05} {:.05} {:.05} {:.05} {:.05} {:.05} {:.05} {:.05}",
+        filename, stats.len, stats.sum, stats.min, stats.max, stats.avg, stats.std, stats.mode,
         stats.p50, stats.p75, stats.p90, stats.p95, stats.p99);
 }
 
@@ -71,14 +73,37 @@ fn stats(mut v: Vec<f64>) -> Stats {
     s.max = *v.last().unwrap_or(&std::f64::NAN);
 
     let n = s.len as f64;
+    // Variables for computing average and standard deviation
     let mut sum = 0.0;
     let mut sum_sq = 0.0;
+    // Variables for computing the mode
+    let mut mode_val = std::f64::NAN;
+    let mut mode_count = 0;
+    let mut mode_candidate = std::f64::NAN;
+    let mut mode_candidate_count = 0;
     for x in &v {
         sum += x;
         sum_sq += x*x;
+
+        if *x == mode_candidate {
+            mode_candidate_count += 1;
+        } else {
+            if mode_candidate_count > mode_count {
+                mode_val = mode_candidate;
+                mode_count = mode_candidate_count;
+            }
+            mode_candidate_count = 1;
+        }
+
+        mode_candidate = *x;
+    }
+
+    if mode_candidate_count > mode_count {
+        mode_val = mode_candidate;
     }
     s.sum = sum;
     s.avg = s.sum / n;
+    s.mode = mode_val;
     // https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Na%C3%AFve_algorithm
     s.std = f64::sqrt((sum_sq - (sum * sum) / n) / n);
     return s;
@@ -166,4 +191,25 @@ fn main() {
         out_fn(filename, &s);
     }
     exit(ret);
+}
+
+
+#[test]
+fn mode() {
+    // Mode of an empty vector is NAN
+    let s = stats(vec![]);
+    assert!(s.mode.is_nan());
+
+    // Mode of a singleton vector is its only value.
+    let s = stats(vec![1.0]);
+    assert_eq!(1.0, s.mode);
+
+    // In stats, mode ties are broken by taking the smallest mode.
+    let s = stats(vec![2.0, 1.0]);
+    assert_eq!(1.0, s.mode);
+    let s = stats(vec![2.0, 1.0, 3.0]);
+    assert_eq!(1.0, s.mode);
+
+    let s = stats(vec![2.0, 1.0, 2.0]);
+    assert_eq!(2.0, s.mode);
 }
