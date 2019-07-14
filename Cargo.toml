@@ -1,8 +1,11 @@
 [package]
 name = "stats"
-version = "0.1.4"
+version = "0.2.0"
 authors = ["Vincent Foley <vfoley@gmail.com>"]
 edition = "2018"
+license = "mit"
+homepage = "https://github.com/gnuvince/stats"
+repository = "https://github.com/gnuvince/stats"
 
 [dependencies]
 getopts = "0.2"
