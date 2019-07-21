@@ -17,6 +17,7 @@ struct Stats {
     avg: f64,
     std: f64,
     mode: f64,
+    mode_occ: usize,
     p50: f64,
     p75: f64,
     p90: f64,
@@ -27,25 +28,26 @@ struct Stats {
 /// Displays one stat (and its title) per line; good for humans.
 fn fmt_full(filename: &str, stats: &Stats) {
     println!("{}", filename);
-    println!("  len  {}", stats.len);
-    println!("  sum  {:.05}", stats.sum);
-    println!("  min  {:.05}", stats.min);
-    println!("  max  {:.05}", stats.max);
-    println!("  avg  {:.05}", stats.avg);
-    println!("  std  {:.05}", stats.std);
-    println!("  mode {:.05}", stats.mode);
-    println!("  p50  {:.05}", stats.p50);
-    println!("  p75  {:.05}", stats.p75);
-    println!("  p90  {:.05}", stats.p90);
-    println!("  p95  {:.05}", stats.p95);
-    println!("  p99  {:.05}", stats.p99);
+    println!("  len    {}", stats.len);
+    println!("  sum    {}", stats.sum);
+    println!("  min    {}", stats.min);
+    println!("  max    {}", stats.max);
+    println!("  avg    {:.5}", stats.avg);
+    println!("  std    {:.5}", stats.std);
+    println!("  mode   {}", stats.mode);
+    println!("  mode#  {}", stats.mode_occ);
+    println!("  p50    {}", stats.p50);
+    println!("  p75    {}", stats.p75);
+    println!("  p90    {}", stats.p90);
+    println!("  p95    {}", stats.p95);
+    println!("  p99    {}", stats.p99);
 }
 
 /// Displays all stats on a single line (no titles); good for pipelines.
 fn fmt_compact(filename: &str, stats: &Stats) {
     println!(
-        "{} {} {:.05} {:.05} {:.05} {:.05} {:.05} {:.05} {:.05} {:.05} {:.05} {:.05} {:.05}",
-        filename, stats.len, stats.sum, stats.min, stats.max, stats.avg, stats.std, stats.mode,
+        "{} {} {} {} {} {:.05} {:.05} {} {} {} {} {} {} {}",
+        filename, stats.len, stats.sum, stats.min, stats.max, stats.avg, stats.std, stats.mode, stats.mode_occ,
         stats.p50, stats.p75, stats.p90, stats.p95, stats.p99);
 }
 
@@ -100,10 +102,12 @@ fn stats(mut v: Vec<f64>) -> Stats {
 
     if mode_candidate_count > mode_count {
         mode_val = mode_candidate;
+        mode_count = mode_candidate_count;
     }
     s.sum = sum;
     s.avg = s.sum / n;
     s.mode = mode_val;
+    s.mode_occ = mode_count;
     // https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Na%C3%AFve_algorithm
     s.std = f64::sqrt((sum_sq - (sum * sum) / n) / n);
     return s;
