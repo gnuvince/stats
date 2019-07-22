@@ -1,3 +1,10 @@
+0.3.0
+=====
+
+- Add `mode#`, the number of occurrences of the mode
+- Add -t/--title to display column titles in compact output
+
+
 0.2.0
 =====
 
