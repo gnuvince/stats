@@ -128,6 +128,7 @@ fn main() {
     opts.optflag("c", "compact", "display each file on one line");
     opts.optflag("h", "help", "display help");
     opts.optflag("s", "silent", "suppress error messages");
+    opts.optflag("t", "title", "display column titles (compact mode)");
     opts.optflag("v", "version", "display version");
 
     let mut matches = match opts.parse(env::args().skip(1)) {
@@ -139,7 +140,7 @@ fn main() {
     };
 
     if matches.opt_present("h") {
-        let brief = format!("Usage: {} [-chsv] [FILES]", PROGNAME);
+        let brief = format!("Usage: {} [-chstv] [FILES]", PROGNAME);
         print!("{}", opts.usage(&brief));
         exit(0);
     }
@@ -153,6 +154,10 @@ fn main() {
 
     let out_fn: fn(&str, &Stats) =
         if matches.opt_present("c") { fmt_compact } else { fmt_full };
+
+    if matches.opt_present("c") && matches.opt_present("t") {
+        println!("filename len sum min max avg std mode mode# p50 p75 p90 p95 p99");
+    }
 
     let mut ret = 0;
     if matches.free.is_empty() {
