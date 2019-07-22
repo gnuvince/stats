@@ -131,7 +131,7 @@ fn main() {
     opts.optflag("t", "title", "display column titles (compact mode)");
     opts.optflag("v", "version", "display version");
 
-    let mut matches = match opts.parse(env::args().skip(1)) {
+    let mut matches = match opts.parse(env::args_os().skip(1)) {
         Ok(m) => { m }
         Err(e) => {
             eprintln!("{}: {}", PROGNAME, e);
