@@ -1,4 +1,5 @@
 use getopts::Options;
+use separator::{Separatable, FixedPlaceSeparatable};
 use std::cmp::Ordering;
 use std::env;
 use std::io::{self, BufReader, BufRead};
@@ -26,29 +27,77 @@ struct Stats {
 }
 
 /// Displays one stat (and its title) per line; good for humans.
-fn fmt_full(filename: &str, stats: &Stats) {
-    println!("{}", filename);
-    println!("  len    {}", stats.len);
-    println!("  sum    {}", stats.sum);
-    println!("  min    {}", stats.min);
-    println!("  max    {}", stats.max);
-    println!("  avg    {:.5}", stats.avg);
-    println!("  std    {:.5}", stats.std);
-    println!("  mode   {}", stats.mode);
-    println!("  mode#  {}", stats.mode_occ);
-    println!("  p50    {}", stats.p50);
-    println!("  p75    {}", stats.p75);
-    println!("  p90    {}", stats.p90);
-    println!("  p95    {}", stats.p95);
-    println!("  p99    {}", stats.p99);
+fn fmt_full(filename: &str, stats: &Stats, thousands_separators: bool) {
+    if thousands_separators {
+        println!("{}", filename);
+        println!("  len    {}", stats.len.separated_string());
+        println!("  sum    {}", stats.sum.separated_string());
+        println!("  min    {}", stats.min.separated_string());
+        println!("  max    {}", stats.max.separated_string());
+        println!("  avg    {}", stats.avg.separated_string_with_fixed_place(5));
+        println!("  std    {}", stats.std.separated_string_with_fixed_place(5));
+        println!("  mode   {}", stats.mode.separated_string());
+        println!("  mode#  {}", stats.mode_occ.separated_string());
+        println!("  p50    {}", stats.p50.separated_string());
+        println!("  p75    {}", stats.p75.separated_string());
+        println!("  p90    {}", stats.p90.separated_string());
+        println!("  p95    {}", stats.p95.separated_string());
+        println!("  p99    {}", stats.p99.separated_string());
+    } else {
+        println!("{}", filename);
+        println!("  len    {}", stats.len);
+        println!("  sum    {}", stats.sum);
+        println!("  min    {}", stats.min);
+        println!("  max    {}", stats.max);
+        println!("  avg    {:.5}", stats.avg);
+        println!("  std    {:.5}", stats.std);
+        println!("  mode   {}", stats.mode);
+        println!("  mode#  {}", stats.mode_occ);
+        println!("  p50    {}", stats.p50);
+        println!("  p75    {}", stats.p75);
+        println!("  p90    {}", stats.p90);
+        println!("  p95    {}", stats.p95);
+        println!("  p99    {}", stats.p99);
+    }
 }
 
 /// Displays all stats on a single line (no titles); good for pipelines.
-fn fmt_compact(filename: &str, stats: &Stats) {
-    println!(
-        "{} {} {} {} {} {:.05} {:.05} {} {} {} {} {} {} {}",
-        filename, stats.len, stats.sum, stats.min, stats.max, stats.avg, stats.std, stats.mode, stats.mode_occ,
-        stats.p50, stats.p75, stats.p90, stats.p95, stats.p99);
+fn fmt_compact(filename: &str, stats: &Stats, thousands_separators: bool) {
+    if thousands_separators {
+        println!(
+            "{} {} {} {} {} {:.05} {:.05} {} {} {} {} {} {} {}",
+            filename,
+            stats.len.separated_string(),
+            stats.sum.separated_string(),
+            stats.min.separated_string(),
+            stats.max.separated_string(),
+            stats.avg.separated_string_with_fixed_place(5),
+            stats.std.separated_string_with_fixed_place(5),
+            stats.mode.separated_string(),
+            stats.mode_occ.separated_string(),
+            stats.p50.separated_string(),
+            stats.p75.separated_string(),
+            stats.p90.separated_string(),
+            stats.p95.separated_string(),
+            stats.p99.separated_string());
+    } else {
+        println!(
+            "{} {} {} {} {} {:.05} {:.05} {} {} {} {} {} {} {}",
+            filename,
+            stats.len,
+            stats.sum,
+            stats.min,
+            stats.max,
+            stats.avg,
+            stats.std,
+            stats.mode,
+            stats.mode_occ,
+            stats.p50,
+            stats.p75,
+            stats.p90,
+            stats.p95,
+            stats.p99);
+    }
 }
 
 fn percentile(v: &[f64], num: usize, denom: usize) -> f64 {
@@ -127,7 +176,8 @@ fn main() {
     let mut opts = Options::new();
     opts.optflag("c", "compact", "display each file on one line");
     opts.optflag("h", "help", "display help");
-    opts.optflag("s", "silent", "suppress error messages");
+    opts.optflag("q", "quiet", "suppress error messages");
+    opts.optflag("s", "separators", "use thousand separators");
     opts.optflag("t", "title", "display column titles (compact mode)");
     opts.optflag("v", "version", "display version");
 
@@ -150,9 +200,10 @@ fn main() {
         exit(0);
     }
 
-    let silent = matches.opt_present("s");
+    let quiet = matches.opt_present("q");
+    let thousands_separators = matches.opt_present("s");
 
-    let out_fn: fn(&str, &Stats) =
+    let out_fn: fn(&str, &Stats, bool) =
         if matches.opt_present("c") { fmt_compact } else { fmt_full };
 
     if matches.opt_present("c") && matches.opt_present("t") {
@@ -171,7 +222,7 @@ fn main() {
             Ok(r) => r,
             Err(e) => {
                 ret = 1;
-                if !silent {
+                if !quiet {
                     eprintln!("{}: {}: {}", PROGNAME, filename, e);
                 }
                 continue;
@@ -182,14 +233,14 @@ fn main() {
             let line = line.unwrap();
             match str::parse::<f64>(&line) {
                 Err(e) => {
-                    if !silent {
+                    if !quiet {
                         eprintln!("{}: {:?} {}", PROGNAME, line, e);
                     }
                 }
                 Ok(x) => {
                     if x.is_finite() {
                         v.push(x);
-                    } else if !silent {
+                    } else if !quiet {
                         eprintln!("{}: skipping {}", PROGNAME, line);
                     }
                 }
@@ -197,7 +248,7 @@ fn main() {
         }
 
         let s = stats(v);
-        out_fn(filename, &s);
+        out_fn(filename, &s, thousands_separators);
     }
     exit(ret);
 }
