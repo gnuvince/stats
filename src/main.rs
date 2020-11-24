@@ -7,7 +7,7 @@ use std::fs::File;
 use std::process::exit;
 
 const PROGNAME: &str = "stats";
-const VERSION: &str = "0.4.0";
+const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[derive(Default, Debug)]
 struct Stats {
