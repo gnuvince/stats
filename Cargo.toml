@@ -1,6 +1,6 @@
 [package]
 name = "stats"
-version = "0.5.0"
+version = "0.5.1"
 authors = ["Vincent Foley <vfoley@gmail.com>"]
 edition = "2018"
 license = "mit"
