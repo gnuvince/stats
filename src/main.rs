@@ -65,7 +65,7 @@ fn fmt_full(filename: &str, stats: &Stats, thousands_separators: bool) {
 fn fmt_compact(filename: &str, stats: &Stats, thousands_separators: bool) {
     if thousands_separators {
         println!(
-            "{} {} {} {} {} {:.05} {:.05} {} {} {} {} {} {} {}",
+            "{} {} {} {} {} {} {} {} {} {} {} {} {} {}",
             filename,
             stats.len.separated_string(),
             stats.sum.separated_string(),
