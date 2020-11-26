@@ -1,3 +1,9 @@
+0.5.2
+=====
+
+- Fix format string for compact output w/ thousands separators
+
+
 0.5.1
 =====
 
