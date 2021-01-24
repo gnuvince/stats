@@ -1,9 +1,9 @@
 use getopts::Options;
-use separator::{Separatable, FixedPlaceSeparatable};
+use separator::{FixedPlaceSeparatable, Separatable};
 use std::cmp::Ordering;
 use std::env;
-use std::io::{self, BufReader, BufRead};
 use std::fs::File;
+use std::io::{self, BufRead, BufReader};
 use std::process::exit;
 
 const PROGNAME: &str = "stats";
@@ -34,8 +34,14 @@ fn fmt_full(filename: &str, stats: &Stats, thousands_separators: bool) {
         println!("  sum    {}", stats.sum.separated_string());
         println!("  min    {}", stats.min.separated_string());
         println!("  max    {}", stats.max.separated_string());
-        println!("  avg    {}", stats.avg.separated_string_with_fixed_place(5));
-        println!("  std    {}", stats.std.separated_string_with_fixed_place(5));
+        println!(
+            "  avg    {}",
+            stats.avg.separated_string_with_fixed_place(5)
+        );
+        println!(
+            "  std    {}",
+            stats.std.separated_string_with_fixed_place(5)
+        );
         println!("  mode   {}", stats.mode.separated_string());
         println!("  mode#  {}", stats.mode_occ.separated_string());
         println!("  p50    {}", stats.p50.separated_string());
@@ -79,7 +85,8 @@ fn fmt_compact(filename: &str, stats: &Stats, thousands_separators: bool) {
             stats.p75.separated_string(),
             stats.p90.separated_string(),
             stats.p95.separated_string(),
-            stats.p99.separated_string());
+            stats.p99.separated_string()
+        );
     } else {
         println!(
             "{} {} {} {} {} {:.05} {:.05} {} {} {} {} {} {} {}",
@@ -96,15 +103,22 @@ fn fmt_compact(filename: &str, stats: &Stats, thousands_separators: bool) {
             stats.p75,
             stats.p90,
             stats.p95,
-            stats.p99);
+            stats.p99
+        );
     }
 }
 
-fn percentile(v: &[f64], num: usize, denom: usize) -> f64 {
-    assert!(num < denom, "the percentile needs to be smaller than 1");
+fn percentile(v: &[f64], p: f64) -> f64 {
+    assert!(
+        p > 0.0 && p < 1.0,
+        "the percentile must be in the range ]0,1["
+    );
     match v.len() {
         0 => std::f64::NAN,
-        n => v[n * num / denom],
+        n => {
+            let i: usize = (n as f64 * p) as usize;
+            v[i]
+        }
     }
 }
 
@@ -115,11 +129,11 @@ fn stats(mut v: Vec<f64>) -> Stats {
     });
     let mut s = Stats::default();
     s.len = v.len();
-    s.p50 = percentile(&v, 1, 2);
-    s.p75 = percentile(&v, 3, 4);
-    s.p90 = percentile(&v, 9, 10);
-    s.p95 = percentile(&v, 19, 20);
-    s.p99 = percentile(&v, 99, 100);
+    s.p50 = percentile(&v, 0.50);
+    s.p75 = percentile(&v, 0.75);
+    s.p90 = percentile(&v, 0.90);
+    s.p95 = percentile(&v, 0.95);
+    s.p99 = percentile(&v, 0.99);
     s.min = *v.first().unwrap_or(&std::f64::NAN);
     s.max = *v.last().unwrap_or(&std::f64::NAN);
 
@@ -134,7 +148,7 @@ fn stats(mut v: Vec<f64>) -> Stats {
     let mut mode_candidate_count = 0;
     for x in &v {
         sum += x;
-        sum_sq += x*x;
+        sum_sq += x * x;
 
         if *x == mode_candidate {
             mode_candidate_count += 1;
@@ -182,7 +196,7 @@ fn main() {
     opts.optflag("v", "version", "display version");
 
     let mut matches = match opts.parse(env::args_os().skip(1)) {
-        Ok(m) => { m }
+        Ok(m) => m,
         Err(e) => {
             eprintln!("{}: {}", PROGNAME, e);
             exit(1);
@@ -203,8 +217,11 @@ fn main() {
     let quiet = matches.opt_present("q");
     let thousands_separators = matches.opt_present("s");
 
-    let out_fn: fn(&str, &Stats, bool) =
-        if matches.opt_present("c") { fmt_compact } else { fmt_full };
+    let out_fn: fn(&str, &Stats, bool) = if matches.opt_present("c") {
+        fmt_compact
+    } else {
+        fmt_full
+    };
 
     if matches.opt_present("c") && matches.opt_present("t") {
         println!("filename len sum min max avg std mode mode# p50 p75 p90 p95 p99");
@@ -253,7 +270,6 @@ fn main() {
     exit(ret);
 }
 
-
 #[test]
 fn mode() {
     // Mode of an empty vector is NAN
@@ -272,4 +288,17 @@ fn mode() {
 
     let s = stats(vec![2.0, 1.0, 2.0]);
     assert_eq!(2.0, s.mode);
+}
+
+#[test]
+fn test_percentile() {
+    let mut v: Vec<f64> = Vec::new();
+    for i in 0..100 {
+        v.push(i as f64);
+    }
+    assert_eq!(percentile(&v, 0.5), 50.0);
+    assert_eq!(percentile(&v, 0.75), 75.0);
+    assert_eq!(percentile(&v, 0.9), 90.0);
+    assert_eq!(percentile(&v, 0.95), 95.0);
+    assert_eq!(percentile(&v, 0.99), 99.0);
 }
