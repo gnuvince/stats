@@ -122,7 +122,7 @@ fn percentile(v: &[f64], p: f64) -> f64 {
     }
 }
 
-fn stats(mut v: Vec<f64>) -> Stats {
+fn stats(v: &mut Vec<f64>) -> Stats {
     v.sort_unstable_by(|a, b| match a.partial_cmp(b) {
         Some(ordering) => ordering,
         None => Ordering::Less,
@@ -146,9 +146,9 @@ fn stats(mut v: Vec<f64>) -> Stats {
     let mut mode_count = 0;
     let mut mode_candidate = std::f64::NAN;
     let mut mode_candidate_count = 0;
-    for x in &v {
-        sum += x;
-        sum_sq += x * x;
+    for x in v {
+        sum += *x;
+        sum_sq += *x * *x;
 
         if *x == mode_candidate {
             mode_candidate_count += 1;
@@ -232,10 +232,12 @@ fn main() {
         matches.free.push("-".to_owned());
     }
 
-    for filename in &matches.free {
-        let mut v: Vec<f64> = Vec::with_capacity(1024);
+    let mut buf = String::with_capacity(4096);
+    let mut v: Vec<f64> = Vec::with_capacity(4096);
 
-        let reader: Box<dyn BufRead> = match bufreader_from_file(filename) {
+    for filename in &matches.free {
+        v.clear();
+        let mut reader: Box<dyn BufRead> = match bufreader_from_file(filename) {
             Ok(r) => r,
             Err(e) => {
                 ret = 1;
@@ -246,25 +248,34 @@ fn main() {
             }
         };
 
-        for line in reader.lines() {
-            let line = line.unwrap();
-            match str::parse::<f64>(&line) {
+        loop {
+            buf.clear();
+            match reader.read_line(&mut buf) {
+                Ok(0) => break,
+                Ok(_) => (),
+                Err(e) => {
+                    eprintln!("{}: cannot read line: {}", PROGNAME, e);
+                    break;
+                }
+            }
+            let trimmed = buf.trim();
+            match str::parse::<f64>(trimmed) {
                 Err(e) => {
                     if !quiet {
-                        eprintln!("{}: {:?} {}", PROGNAME, line, e);
+                        eprintln!("{}: {:?} {}", PROGNAME, trimmed, e);
                     }
                 }
                 Ok(x) => {
                     if x.is_finite() {
                         v.push(x);
                     } else if !quiet {
-                        eprintln!("{}: skipping {}", PROGNAME, line);
+                        eprintln!("{}: skipping {}", PROGNAME, trimmed);
                     }
                 }
             }
         }
 
-        let s = stats(v);
+        let s = stats(&mut v);
         out_fn(filename, &s, thousands_separators);
     }
     exit(ret);
@@ -273,20 +284,20 @@ fn main() {
 #[test]
 fn mode() {
     // Mode of an empty vector is NAN
-    let s = stats(vec![]);
+    let s = stats(&mut vec![]);
     assert!(s.mode.is_nan());
 
     // Mode of a singleton vector is its only value.
-    let s = stats(vec![1.0]);
+    let s = stats(&mut vec![1.0]);
     assert_eq!(1.0, s.mode);
 
     // In stats, mode ties are broken by taking the smallest mode.
-    let s = stats(vec![2.0, 1.0]);
+    let s = stats(&mut vec![2.0, 1.0]);
     assert_eq!(1.0, s.mode);
-    let s = stats(vec![2.0, 1.0, 3.0]);
+    let s = stats(&mut vec![2.0, 1.0, 3.0]);
     assert_eq!(1.0, s.mode);
 
-    let s = stats(vec![2.0, 1.0, 2.0]);
+    let s = stats(&mut vec![2.0, 1.0, 2.0]);
     assert_eq!(2.0, s.mode);
 }
 
