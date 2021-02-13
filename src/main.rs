@@ -259,10 +259,10 @@ fn main() {
                 }
             }
             let trimmed = buf.trim();
-            match str::parse::<f64>(trimmed) {
-                Err(e) => {
+            match fast_float::parse::<f64, _>(trimmed) {
+                Err(_) => {
                     if !quiet {
-                        eprintln!("{}: {:?} {}", PROGNAME, trimmed, e);
+                        eprintln!("{}: cannot convert {:?} to a number", PROGNAME, trimmed);
                     }
                 }
                 Ok(x) => {

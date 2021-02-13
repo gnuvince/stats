@@ -10,3 +10,4 @@ repository = "https://github.com/gnuvince/stats"
 [dependencies]
 getopts = "0.2"
 separator = "0.4"
+fast-float = "0.2"
