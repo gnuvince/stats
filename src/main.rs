@@ -243,20 +243,20 @@ fn main() {
 fn mode() {
     // Mode of an empty vector is NAN
     let s = stats(&mut vec![]);
-    assert!(s.mode.is_nan());
+    assert!(s[stat::MODE].is_nan());
 
     // Mode of a singleton vector is its only value.
     let s = stats(&mut vec![1.0]);
-    assert_eq!(1.0, s.mode);
+    assert_eq!(1.0, s[stat::MODE]);
 
     // In stats, mode ties are broken by taking the smallest mode.
     let s = stats(&mut vec![2.0, 1.0]);
-    assert_eq!(1.0, s.mode);
+    assert_eq!(1.0, s[stat::MODE]);
     let s = stats(&mut vec![2.0, 1.0, 3.0]);
-    assert_eq!(1.0, s.mode);
+    assert_eq!(1.0, s[stat::MODE]);
 
     let s = stats(&mut vec![2.0, 1.0, 2.0]);
-    assert_eq!(2.0, s.mode);
+    assert_eq!(2.0, s[stat::MODE]);
 }
 
 #[test]

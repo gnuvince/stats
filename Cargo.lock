@@ -25,7 +25,7 @@ checksum = "f97841a747eef040fcd2e7b3b9a220a7205926e60488e673d9e4926d27772ce5"
 
 [[package]]
 name = "stats"
-version = "0.6.0"
+version = "0.6.1"
 dependencies = [
  "fast-float",
  "getopts",
