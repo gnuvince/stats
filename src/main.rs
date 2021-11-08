@@ -1,5 +1,5 @@
 use getopts::Options;
-use separator::{FixedPlaceSeparatable, Separatable};
+use separator::Separatable;
 use std::cmp::Ordering;
 use std::env;
 use std::fs::File;
@@ -9,102 +9,62 @@ use std::process::exit;
 const PROGNAME: &str = "stats";
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 
-#[derive(Default, Debug)]
-struct Stats {
-    len: usize,
-    sum: f64,
-    min: f64,
-    max: f64,
-    avg: f64,
-    std: f64,
-    mode: f64,
-    mode_occ: usize,
-    p50: f64,
-    p75: f64,
-    p90: f64,
-    p95: f64,
-    p99: f64,
+// NB(vfoley): Usually I would use an enum, but it's annoying to
+// convert enum items to/from usize integers in Rust. Since this is
+// just a small, simple program, I make my life easier by defining a
+// bunch of constants.
+mod stat {
+    pub const LEN: usize = 0;
+    pub const SUM: usize = 1;
+    pub const MIN: usize = 2;
+    pub const MAX: usize = 3;
+    pub const AVG: usize = 4;
+    pub const STD: usize = 5;
+    pub const MODE: usize = 6;
+    pub const MODE_OCC: usize = 7;
+    pub const P50: usize = 8;
+    pub const P75: usize = 9;
+    pub const P90: usize = 10;
+    pub const P95: usize = 11;
+    pub const P99: usize = 12;
+    pub const COUNT: usize = 13;
+
+    pub const NAMES: [&str; COUNT] = [
+        "len", "sum", "min", "max", "avg", "std", "mode", "mode#", "p50", "p75", "p90", "p95",
+        "p99",
+    ];
 }
 
-/// Displays one stat (and its title) per line; good for humans.
-fn fmt_full(filename: &str, stats: &Stats, thousands_separators: bool) {
-    if thousands_separators {
-        println!("{}", filename);
-        println!("  len    {}", stats.len.separated_string());
-        println!("  sum    {}", stats.sum.separated_string());
-        println!("  min    {}", stats.min.separated_string());
-        println!("  max    {}", stats.max.separated_string());
-        println!(
-            "  avg    {}",
-            stats.avg.separated_string_with_fixed_place(5)
-        );
-        println!(
-            "  std    {}",
-            stats.std.separated_string_with_fixed_place(5)
-        );
-        println!("  mode   {}", stats.mode.separated_string());
-        println!("  mode#  {}", stats.mode_occ.separated_string());
-        println!("  p50    {}", stats.p50.separated_string());
-        println!("  p75    {}", stats.p75.separated_string());
-        println!("  p90    {}", stats.p90.separated_string());
-        println!("  p95    {}", stats.p95.separated_string());
-        println!("  p99    {}", stats.p99.separated_string());
+// NB(vfoley): There are two stats, len and mode#, that really ought to be u64s.
+type Stats = [f64; stat::COUNT];
+
+struct DisplayOpts {
+    short: bool,
+    thousands: bool,
+}
+
+fn print_stats(filename: &str, stats: &Stats, opts: &DisplayOpts) {
+    if opts.short {
+        print!("{} ", filename);
     } else {
-        println!("{}", filename);
-        println!("  len    {}", stats.len);
-        println!("  sum    {}", stats.sum);
-        println!("  min    {}", stats.min);
-        println!("  max    {}", stats.max);
-        println!("  avg    {:.5}", stats.avg);
-        println!("  std    {:.5}", stats.std);
-        println!("  mode   {}", stats.mode);
-        println!("  mode#  {}", stats.mode_occ);
-        println!("  p50    {}", stats.p50);
-        println!("  p75    {}", stats.p75);
-        println!("  p90    {}", stats.p90);
-        println!("  p95    {}", stats.p95);
-        println!("  p99    {}", stats.p99);
+        println!("{} ", filename);
     }
-}
 
-/// Displays all stats on a single line (no titles); good for pipelines.
-fn fmt_compact(filename: &str, stats: &Stats, thousands_separators: bool) {
-    if thousands_separators {
-        println!(
-            "{} {} {} {} {} {} {} {} {} {} {} {} {} {}",
-            filename,
-            stats.len.separated_string(),
-            stats.sum.separated_string(),
-            stats.min.separated_string(),
-            stats.max.separated_string(),
-            stats.avg.separated_string_with_fixed_place(5),
-            stats.std.separated_string_with_fixed_place(5),
-            stats.mode.separated_string(),
-            stats.mode_occ.separated_string(),
-            stats.p50.separated_string(),
-            stats.p75.separated_string(),
-            stats.p90.separated_string(),
-            stats.p95.separated_string(),
-            stats.p99.separated_string()
-        );
-    } else {
-        println!(
-            "{} {} {} {} {} {:.05} {:.05} {} {} {} {} {} {} {}",
-            filename,
-            stats.len,
-            stats.sum,
-            stats.min,
-            stats.max,
-            stats.avg,
-            stats.std,
-            stats.mode,
-            stats.mode_occ,
-            stats.p50,
-            stats.p75,
-            stats.p90,
-            stats.p95,
-            stats.p99
-        );
+    for i in 0..stat::COUNT {
+        if !opts.short {
+            print!("  {:6}", stat::NAMES[i]);
+        }
+        if opts.thousands {
+            print!(" {}", stats[i].separated_string());
+        } else {
+            print!(" {}", stats[i]);
+        }
+        if !opts.short {
+            println!("");
+        }
+    }
+    if opts.short {
+        println!("");
     }
 }
 
@@ -127,17 +87,17 @@ fn stats(v: &mut Vec<f64>) -> Stats {
         Some(ordering) => ordering,
         None => Ordering::Less,
     });
-    let mut s = Stats::default();
-    s.len = v.len();
-    s.p50 = percentile(&v, 0.50);
-    s.p75 = percentile(&v, 0.75);
-    s.p90 = percentile(&v, 0.90);
-    s.p95 = percentile(&v, 0.95);
-    s.p99 = percentile(&v, 0.99);
-    s.min = *v.first().unwrap_or(&std::f64::NAN);
-    s.max = *v.last().unwrap_or(&std::f64::NAN);
+    let mut s: Stats = [0.0; stat::COUNT];
+    s[stat::LEN] = v.len() as f64;
+    s[stat::P50] = percentile(&v, 0.50);
+    s[stat::P75] = percentile(&v, 0.75);
+    s[stat::P90] = percentile(&v, 0.90);
+    s[stat::P95] = percentile(&v, 0.95);
+    s[stat::P99] = percentile(&v, 0.99);
+    s[stat::MIN] = *v.first().unwrap_or(&std::f64::NAN);
+    s[stat::MAX] = *v.last().unwrap_or(&std::f64::NAN);
 
-    let n = s.len as f64;
+    let n = s[stat::LEN];
     // Variables for computing average and standard deviation
     let mut sum = 0.0;
     let mut sum_sq = 0.0;
@@ -167,12 +127,12 @@ fn stats(v: &mut Vec<f64>) -> Stats {
         mode_val = mode_candidate;
         mode_count = mode_candidate_count;
     }
-    s.sum = sum;
-    s.avg = s.sum / n;
-    s.mode = mode_val;
-    s.mode_occ = mode_count;
+    s[stat::SUM] = sum;
+    s[stat::AVG] = sum / n;
+    s[stat::MODE] = mode_val;
+    s[stat::MODE_OCC] = mode_count as f64;
     // https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Na%C3%AFve_algorithm
-    s.std = f64::sqrt((sum_sq - (sum * sum) / n) / n);
+    s[stat::STD] = f64::sqrt((sum_sq - (sum * sum) / n) / n);
     return s;
 }
 
@@ -214,14 +174,12 @@ fn main() {
         exit(0);
     }
 
-    let quiet = matches.opt_present("q");
-    let thousands_separators = matches.opt_present("s");
-
-    let out_fn: fn(&str, &Stats, bool) = if matches.opt_present("c") {
-        fmt_compact
-    } else {
-        fmt_full
+    let display_opts = DisplayOpts {
+        short: matches.opt_present("c"),
+        thousands: matches.opt_present("s"),
     };
+
+    let quiet = matches.opt_present("q");
 
     if matches.opt_present("c") && matches.opt_present("t") {
         println!("filename len sum min max avg std mode mode# p50 p75 p90 p95 p99");
@@ -276,7 +234,7 @@ fn main() {
         }
 
         let s = stats(&mut v);
-        out_fn(filename, &s, thousands_separators);
+        print_stats(filename, &s, &display_opts);
     }
     exit(ret);
 }
