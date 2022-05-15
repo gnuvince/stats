@@ -43,29 +43,29 @@ struct DisplayOpts {
     thousands: bool,
 }
 
-fn print_stats(filename: &str, stats: &Stats, opts: &DisplayOpts) {
-    if opts.short {
-        print!("{} ", filename);
-    } else {
-        println!("{} ", filename);
-    }
-
+// Display one stat per line, with the name of the stat
+fn print_long(filename: &str, stats: &Stats, thousands: bool) {
+    println!("{}", filename);
     for i in 0..stat::COUNT {
-        if !opts.short {
-            print!("  {:6}", stat::NAMES[i]);
-        }
-        if opts.thousands {
-            print!(" {}", stats[i].separated_string());
+        if thousands {
+            println!("  {:6}  {}", stat::NAMES[i], stats[i].separated_string());
         } else {
-            print!(" {}", stats[i]);
-        }
-        if !opts.short {
-            println!("");
+            println!("  {:6}  {}", stat::NAMES[i], stats[i]);
         }
     }
-    if opts.short {
-        println!("");
+}
+
+// Display all stats on a single line
+fn print_short(filename: &str, stats: &Stats, thousands: bool) {
+    print!("{}", filename);
+    for s in stats {
+        if thousands {
+            print!(" {}", s.separated_string());
+        } else {
+            print!(" {}", s);
+        }
     }
+    println!("");
 }
 
 fn percentile(v: &[f64], p: f64) -> f64 {
@@ -181,9 +181,16 @@ fn main() {
 
     let quiet = matches.opt_present("q");
 
-    if matches.opt_present("c") && matches.opt_present("t") {
+    // Display titles for compact output format
+    if display_opts.short && matches.opt_present("t") {
         println!("filename len sum min max avg std mode mode# p50 p75 p90 p95 p99");
     }
+
+    let print_stats = if display_opts.short {
+        print_short
+    } else {
+        print_long
+    };
 
     let mut ret = 0;
     if matches.free.is_empty() {
@@ -234,7 +241,7 @@ fn main() {
         }
 
         let s = stats(&mut v);
-        print_stats(filename, &s, &display_opts);
+        print_stats(filename, &s, display_opts.thousands);
     }
     exit(ret);
 }
