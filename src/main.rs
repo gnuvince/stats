@@ -186,12 +186,6 @@ fn main() {
         println!("filename len sum min max avg std mode mode# p50 p75 p90 p95 p99");
     }
 
-    let print_stats = if display_opts.short {
-        print_short
-    } else {
-        print_long
-    };
-
     let mut ret = 0;
     if matches.free.is_empty() {
         matches.free.push("-".to_owned());
@@ -241,7 +235,11 @@ fn main() {
         }
 
         let s = stats(&mut v);
-        print_stats(filename, &s, display_opts.thousands);
+        if display_opts.short {
+            print_short(filename, &s, display_opts.thousands);
+        } else {
+            print_long(filename, &s, display_opts.thousands);
+        }
     }
     exit(ret);
 }
