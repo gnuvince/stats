@@ -183,7 +183,11 @@ fn main() {
 
     // Display titles for compact output format
     if display_opts.short && matches.opt_present("t") {
-        println!("filename len sum min max avg std mode mode# p50 p75 p90 p95 p99");
+        print!("filename");
+        for stat_name in stat::NAMES {
+            print!(" {}", stat_name);
+        }
+        println!("");
     }
 
     let mut ret = 0;
