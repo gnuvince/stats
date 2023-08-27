@@ -183,11 +183,11 @@ fn main() {
 
     // Display titles for compact output format
     if display_opts.short && matches.opt_present("t") {
-        print!("filename");
+        eprint!("filename");
         for stat_name in stat::NAMES {
-            print!(" {}", stat_name);
+            eprint!(" {}", stat_name);
         }
-        println!("");
+        eprintln!("");
     }
 
     let mut ret = 0;
